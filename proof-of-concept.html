@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Intel&reg; AMT - Sample 1 - Basic Calls</title>
+    <link type="text/css" href="styles.css" media="screen" rel="stylesheet" title="CSS" />
+    <script type="text/javascript" src="common-0.0.1.js"></script>
+    <script type="text/javascript" src="amt-wsman-node-0.2.0.js"></script>
+    <script type="text/javascript" src="amt-wsman-0.2.0.js"></script>
+    <script type="text/javascript" src="amt-0.2.0.js"></script>
+</head>
+<body onload="startup()">
+    <div class="buttons">
+        <div class="title">Proof-of-concept</div>To work, this page must be loaded in <a href="http://nwjs.io/">NW.js</a>.<br />
+        <font color="orange">This example is NOT secure and should NOT BE USED IN PRODUCTION ENVIRONMENTS</font>
+    </div>
+    <div class="top">
+        <div class="textlabel">Host </div><div><input id="amthost" type="text" value="" style="width:400px" />&nbsp;&nbsp;TLS <input id="amttls" type="checkbox" /></div>
+        <div class="textlabel">Username </div><input id="username" type="text" value="" style="width:500px" /><br />
+        <div class="textlabel">Password </div><input id="password" type="password" value="" style="width:500px" autocomplete="off" /><br />
+    </div>
+    <div class="buttons">
+        <input type="button" value="Clear" onclick="cleartext()" />
+        <input type="button" value="Pull hardware" onclick="startTest()" />
+        <input type="button" value="Export to JSON" onclick="SaveHardwareLog()" />
+    </div>
+    <div class="results">
+        <span id="results"></span>
+    </div>
+    <input style="display:none;" id="fileSaveDialog" type="file">
+    <script type="text/javascript">
+        var wsstack = null;
+        var amtstack = null;
+
+        function startup() { }
+        function cleartext() { QH("results", ""); }
+        function debug(x) { QA("results", x + "<br />"); }
+        
+
+        // Start the test
+        function startTest() {
+            wsstack = WsmanStackCreateService(Q('amthost').value, Q('amttls').checked == true ? 16993 : 16992, Q('username').value, Q('password').value, Q('amttls').checked == true ? 1 : 0);
+            amtstack = AmtStackCreateService(wsstack);
+
+            amtstack.BatchEnum("", ["AMT_GeneralSettings", "*CIM_ComputerSystemPackage", "CIM_SystemPackaging", "*CIM_Chassis", "CIM_Chip", "*CIM_Card", "*CIM_BIOSElement", "CIM_Processor", "CIM_PhysicalMemory", "CIM_MediaAccessDevice", "CIM_PhysicalPackage", "AMT_EthernetPortSettings", "CIM_EthernetPort", "AMT_PCIDevice"], HardwareEnumCallback);
+        }
+
+        var ChassisPackType = ["Unknown", "Other", "Rack", "Chassis/Frame", "Cross Connect/Backplane", "Container/Frame Slot", "Power Supply", "Fan", "Sensor", "Module/Card", "Port/Connector", "Battery", "Processor", "Memory", "Power Source/Generator", "Storage Media Package (e.g.", "Disk or Tape Drive)", "Blade", "Blade Expansion"];
+        var ChassisType = ["Unknown", "Other", "SMBIOS Reserved", "Desktop", "Low Profile Desktop", "Pizza Box", "Mini Tower", "Tower", "Portable", "LapTop", "Notebook", "Hand Held", "Docking Station", "All in One", "Sub Notebook", "Space-Saving", "Lunch Box", "Main System Chassis", "Expansion Chassis", "SubChassis", "Bus Expansion Chassis", "Peripheral Chassis", "Storage Chassis", "SMBIOS Reseved", "Sealed-Case PC", "SMBIOS Reserved", "CompactPCI", "AdvancedTCA", "Blade Enclosure"];
+        var ChassisOpState = ["Unknown", "Other", "OK", "Degraded", "Stressed", "Predictive Failure", "Error", "Non-Recoverable Error", "Starting", "Stopping", "Stopped", "In Service", "No Contact", "Lost Communication", "Aborted", "Dormant", "Supporting Entity in Error", "Completed", "Power Mode", "Relocating", "DMTF Reserved"];
+
+        var CardPackType = ["Unknown", "Other", "Rack", "Chassis/Frame", "Cross Connect/Backplane", "Container/Frame Slot", "Power Supply", "Fan", "Sensor", "Module/Card", "Port/Connector", "Battery", "Processor", "Memory", "Power Source/Generator", "Storage Media Package (e.g.", "Disk or Tape Drive)", "Blade", "Blade Expansion"];
+
+        var BIOSElState = ["Deployable", "Installable", "Executable", "Running"];
+        var BIOSTargetOS = ["Unknown", "Other", "MACOS", "ATTUNIX", "DGUX", "DECNT", "Tru64 UNIX", "OpenVMS", "HPUX", "AIX", "MVS", "OS400", "OS/2", "JavaVM", "MSDOS", "WIN3x", "WIN95", "WIN98", "WINNT", "WINCE", "NCR3000", "NetWare", "OSF", "DC/OS", "Reliant UNIX", "SCO UnixWare", "SCO OpenServer", "Sequent", "IRIX", "Solaris", "SunOS", "U6000", "ASERIES", "HP NonStop OS", "HP NonStop OSS", "BS2000", "LINUX", "Lynx", "XENIX", "VM", "Interactive UNIX", "BSDUNIX", "FreeBSD", "NetBSD", "GNU Hurd", "OS9", "MACH Kernel", "Inferno", "QNX", "EPOC", "IxWorks", "VxWorks", "MiNT", "BeOS", "HP MPE", "NextStep", "PalmPilot", "Rhapsody", "Windows 2000", "Dedicated", "OS/390", "VSE", "TPF", "Windows (R) Me", "Caldera Open UNIX", "OpenBSD", "Not Applicable", "Windows XP", "z/OS", "Microsoft Windows Server 2003", "Microsoft Windows Server 2003 64-Bit", "Windows XP 64-Bit", "Windows XP Embedded", "Windows Vista", "Windows Vista 64-Bit", "Windows Embedded for Point of Service", "Microsoft Windows Server 2008", "Microsoft Windows Server 2008 64-Bit", "FreeBSD 64-Bit", "RedHat Enterprise Linux", "RedHat Enterprise Linux 64-Bit", "Solaris 64-Bit", "SUSE", "SUSE 64-Bit", "SLES", "SLES 64-Bit", "Novell OES", "Novell Linux Desktop", "Sun Java Desktop System", "Mandriva", "Mandriva 64-Bit", "TurboLinux", "TurboLinux 64-Bit", "Ubuntu", "Ubuntu 64-Bit", "Debian", "Debian 64-Bit", "Linux 2.4.x", "Linux 2.4.x 64-Bit", "Linux 2.6.x", "Linux 2.6.x 64-Bit", "Linux 64-Bit", "Other 64-Bit", "Microsoft Windows Server 2008 R2", "VMware ESXi", "Microsoft Windows 7", "CentOS 32-bit", "CentOS 64-bit", "Oracle Enterprise Linux 32-bit", "Oracle Enterprise Linux 64-bit", "eComStation 32-bitx", "Microsoft Windows Server 2011", "Microsoft Windows Server 2011 64-Bit", "Microsoft Windows Server 8"]
+
+        var ProcessorSock = ["", "Other", "Unknown", "Daughter Board", "ZIF Socket", "Replacement/Piggy Back", "None", "LIF Socket", "Slot 1", "Slot 2", "370 Pin Socket", "Slot A", "Slot M", "Socket 423", "Socket A (Socket 462)", "Socket 478", "Socket 754", "Socket 940", "Socket 939", "Socket mPGA604", "Socket LGA771", "Socket LGA775", "Socket S1", "Socket AM2", "Socket F (1207)", "Socket LGA1366", "Socket G34", "Socket AM3", "Socket C32", "Socket LGA1156", "Socket LGA1567", "Socket PGA988A", "Socket BGA1288", "rPGA988B", "BGA1023", "BGA1224", "LGA1155", "LGA1356", "LGA2011", "Socket FS1", "Socket FS2", "Socket FM1", "Socket FM2", "Socket LGA2011-3", "Socket LGA1356-3", "Socket LGA1150", "Socket BGA1168"]
+        var ProcessorFamily = ["", "Other", "Unknown", "8086", "80286", "80386", "80486", "8087", "80287", "80387", "80487", "Pentium(R) brand", "Pentium(R) Pro", "Pentium(R) II", "Pentium(R) processor with MMX(TM) technology", "Celeron(TM)", "Pentium(R) II Xeon(TM)", "Pentium(R) III", "M1 Family", "M2 Family", "Intel(R) Celeron(R) M processor", "Intel(R) Pentium(R) 4 HT processor", "Reserved", "Reserved", "K5 Family", "K6 Family", "K6-2", "K6-3", "AMD Athlon(TM) Processor Family", "AMD(R) Duron(TM) Processor", "AMD29000 Family", "K6-2+", "Power PC Family", "Power PC 601", "Power PC 603", "Power PC 603+", "Power PC 604", "Power PC 620", "Power PC X704", "Power PC 750", "Intel(R) Core(TM) Duo processor", "Intel(R) Core(TM) Duo mobile processor", "Intel(R) Core(TM) Solo mobile processor", "Intel(R) Atom(TM) processor", "Reserved", "Reserved", "Reserved", "Reserved", "Alpha Family", "Alpha 21064", "Alpha 21066", "Alpha 21164", "Alpha 21164PC", "Alpha 21164a", "Alpha 21264", "Alpha 21364", "AMD Turion(TM) II Ultra Dual-Core Mobile M Processor Family", "AMD Turion(TM) II Dual-Core Mobile M Processor Family", "AMD Athlon(TM) II Dual-Core Mobile M Processor Family", "AMD Opteron(TM) 6100 Series Processor", "AMD Opteron(TM) 4100 Series Processor", "AMD Opteron(TM) 6200 Series Processor", "AMD Opteron(TM) 4200 Series Processor", "AMD FX(TM) Series Processor", "MIPS Family", "MIPS R4000", "MIPS R4200", "MIPS R4400", "MIPS R4600", "MIPS R10000", "AMD C-Series Processor", "AMD E-Series Processor", "AMD A-Series Processor", "AMD G-Series Processor", "AMD Z-Series Processor", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "SPARC Family", "SuperSPARC", "microSPARC II", "microSPARC IIep", "UltraSPARC", "UltraSPARC II", "UltraSPARC IIi", "UltraSPARC III", "UltraSPARC IIIi", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "68040", "68xxx Family", "68000", "68010", "68020", "68030", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Hobbit Family", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Crusoe(TM) TM5000 Family", "Crusoe(TM) TM3000 Family", "Efficeon(TM) TM8000 Family", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Weitek", "Reserved", "Itanium(TM) Processor", "AMD Athlon(TM) 64 Processor Family", "AMD Opteron(TM) Processor Family", "AMD Sempron(TM) Processor Family", "AMD Turion(TM) 64 Mobile Technology", "Dual-Core AMD Opteron(TM) Processor Family", "AMD Athlon(TM) 64 X2 Dual-Core Processor Family", "AMD Turion(TM) 64 X2 Mobile Technology", "Quad-Core AMD Opteron(TM) Processor Family", "Third-Generation AMD Opteron(TM) Processor Family", "AMD Phenom(TM) FX Quad-Core Processor Family", "AMD Phenom(TM) X4 Quad-Core Processor Family", "AMD Phenom(TM) X2 Dual-Core Processor Family", "AMD Athlon(TM) X2 Dual-Core Processor Family", "PA-RISC Family", "PA-RISC 8500", "PA-RISC 8000", "PA-RISC 7300LC", "PA-RISC 7200", "PA-RISC 7100LC", "PA-RISC 7100", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "V30 Family", "Quad-Core Intel(R) Xeon(R) processor 3200 Series", "Dual-Core Intel(R) Xeon(R) processor 3000 Series", "Quad-Core Intel(R) Xeon(R) processor 5300 Series", "Dual-Core Intel(R) Xeon(R) processor 5100 Series", "Dual-Core Intel(R) Xeon(R) processor 5000 Series", "Dual-Core Intel(R) Xeon(R) processor LV", "Dual-Core Intel(R) Xeon(R) processor ULV", "Dual-Core Intel(R) Xeon(R) processor 7100 Series", "Quad-Core Intel(R) Xeon(R) processor 5400 Series", "Quad-Core Intel(R) Xeon(R) processor", "Dual-Core Intel(R) Xeon(R) processor 5200 Series", "Dual-Core Intel(R) Xeon(R) processor 7200 Series", "Quad-Core Intel(R) Xeon(R) processor 7300 Series", "Quad-Core Intel(R) Xeon(R) processor 7400 Series", "Multi-Core Intel(R) Xeon(R) processor 7400 Series", "Pentium(R) III Xeon(TM)", "Pentium(R) III Processor with Intel(R) SpeedStep(TM) Technology", "Pentium(R) 4", "Intel(R) Xeon(TM)", "AS400 Family", "Intel(R) Xeon(TM) processor MP", "AMD Athlon(TM) XP Family", "AMD Athlon(TM) MP Family", "Intel(R) Itanium(R) 2", "Intel(R) Pentium(R) M processor", "Intel(R) Celeron(R) D processor", "Intel(R) Pentium(R) D processor", "Intel(R) Pentium(R) Processor Extreme Edition", "Intel(R) Core(TM) Solo Processor", "K7", "Intel(R) Core(TM)2 Duo Processor", "Intel(R) Core(TM)2 Solo processor", "Intel(R) Core(TM)2 Extreme processor", "Intel(R) Core(TM)2 Quad processor", "Intel(R) Core(TM)2 Extreme mobile processor", "Intel(R) Core(TM)2 Duo mobile processor", "Intel(R) Core(TM)2 Solo mobile processor", "Intel(R) Core(TM) i7 processor", "Dual-Core Intel(R) Celeron(R) Processor", "S/390 and zSeries Family", "ESA/390 G4", "ESA/390 G5", "ESA/390 G6", "z/Architectur base", "Intel(R) Core(TM) i5 processor", "Intel(R) Core(TM) i3 processor", "Reserved", "Reserved", "Reserved", "VIA C7(TM)-M Processor Family", "VIA C7(TM)-D Processor Family", "VIA C7(TM) Processor Family", "VIA Eden(TM) Processor Family", "Multi-Core Intel(R) Xeon(R) processor", "Dual-Core Intel(R) Xeon(R) processor 3xxx Series", "Quad-Core Intel(R) Xeon(R) processor 3xxx Series", "VIA Nano(TM) Processor Family", "Dual-Core Intel(R) Xeon(R) processor 5xxx Series", "Quad-Core Intel(R) Xeon(R) processor 5xxx Series", "Reserved", "Dual-Core Intel(R) Xeon(R) processor 7xxx Series", "Quad-Core Intel(R) Xeon(R) processor 7xxx Series", "Multi-Core Intel(R) Xeon(R) processor 7xxx Series", "Multi-Core Intel(R) Xeon(R) processor 3400 Series", "Reserved", "Reserved", "Reserved", "AMD Opteron(TM) 3000 Series Processor", "AMD Sempron(TM) II Processor Family", "Embedded AMD Opteron(TM) Quad-Core Processor Family", "AMD Phenom(TM) Triple-Core Processor Family", "AMD Turion(TM) Ultra Dual-Core Mobile Processor Family", "AMD Turion(TM) Dual-Core Mobile Processor Family", "AMD Athlon(TM) Dual-Core Processor Family", "AMD Sempron(TM) SI Processor Family", "AMD Phenom(TM) II Processor Family", "AMD Athlon(TM) II Processor Family", "Six-Core AMD Opteron(TM) Processor Family", "AMD Sempron(TM) M Processor Family", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "i860", "i960", "Reserved", "Reserved", "Reserved (SMBIOS Extension)", "Reserved (Un-initialized Flash Content - Lo)", "Reserved", "Reserved", "Reserved", "Reserved", "SH-3", "SH-4", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "ARM", "StrongARM", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "6x86", "MediaGX", "MII", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "WinChip", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "DSP", "Reserved", "Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved", "Video Processor","Reserved"]
+        var ProcessorCPUStatus = ["Unknown", "Enabled", "Disabled by User", "Disabled By BIOS (POST Error)", "Idle", "Other"];
+
+        var MemType = ["Unknown", "Other", "DRAM", "Synchronous DRAM", "Cache DRAM", "EDO", "EDRAM", "VRAM", "SRAM", "RAM", "ROM", "Flash", "EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM", "SGRAM", "RDRAM", "DDR", "DDR-2", "BRAM", "FB-DIMM", "DDR3", "FBD2", "DDR4", "LPDDR", "LPDDR2", "LPDDR3", "LPDDR4"];
+        var MemFormFactor = ['', 'Other','Unknown','SIMM','SIP','Chip','DIP','ZIP','Proprietary Card','DIMM','TSOP','Row of chips','RIMM','SODIMM','SRIMM','FB-DIM'];
+
+        var MediaState = ["Unknown", " Other", " Enabled", " Disabled", " Shutting Down", " Not Applicable", " Enabled but Offline", " In Test", " Deferred", " Quiesce", " Starting"]
+        var MediaDefaultState = {
+            2:"Enabled",
+            3:"Disabled", 
+            5:"Not Applicable", 
+            6:"Enabled but Offline", 
+            7:"No Default", 
+            9:"Quiesce"}
+        var MediaReqState = {
+            0:"Unknown", 
+            2:"Enabled", 
+            3:"Disabled", 
+            4:"Shut Down", 
+            5:"No Change", 
+            6:"Offline", 
+            7:"Test", 
+            8:"Deferred", 
+            9:"Quiesce", 
+            10:"Reboot", 
+            11:"Reset", 
+            12:"Not Applicable"}
+
+        var PhysState = ["Unknown", " Other", " OK", " Degraded", " Stressed", " Predictive Failure", " Error", " Non-Recoverable Error", " Starting", " Stopping", " Stopped", " In Service", " No Contact", " Lost Communication", " Aborted", " Dormant", " Supporting Entity in Error", " Completed", " Power Mode", " Relocating"]
+        var PhysPackType = ["Unknown", " Other", " Rack", " Chassis/Frame", " Cross Connect/Backplane", " Container/Frame Slot", " Power Supply", " Fan", " Sensor", " Module/Card", " Port/Connector", " Battery", " Processor", " Memory", " Power Source/Generator", " Storage Media Package (e.g. Disk or Tape Drive)", " Blade", " Blade Expansion"]
+
+        var EtherPortType = {"0":"Unknown","1":"Other","50":"10BaseT","51":"10-100BaseT","52":"100BaseT","53":"1000BaseT","54":"2500BaseT","55":"10GBaseT","56":"10GBase-CX4","100":"100Base-FX","101":"100Base-SX","102":"1000Base-SX","103":"1000Base-LX","104":"1000Base-CX","105":"10GBase-SR","106":"10GBase-SW","107":"10GBase-LX4","108":"10GBase-LR","109":"10GBase-LW","110":"10GBase-ER","111":"10GBase-EW"};
+        var EtherLinkTech = ["Unknown", "Other", "Ethernet", "IB", "FC", "FDDI", "ATM", "Token Ring", "Frame Relay", "Infrared", "BlueTooth", "Wireless LAN"];
+        var EtherLinkPolicy = {"1":"available on S0 AC", "14":"available on Sx AC", "16":"available on S0 DC", "224":"available on Sx DC"};
+
+        var PCIProt = ["Other", " Unknown", " EISA", " ISA", " PCI", " ATA/ATAPI", " Flexible Diskette", " 1496", " SCSI Parallel Interface", " SCSI Fibre Channel Protocol", " SCSI Serial Bus Protocol", " SCSI Serial Bus Protocol-2 (1394)", " SCSI Serial Storage Architecture", " VESA", " PCMCIA", " Universal Serial Bus", " Parallel Protocol", " ESCON", " Diagnostic", " I2C", " Power", " HIPPI", " MultiBus", " VME", " IPI", " IEEE-488", " RS232", " IEEE 802.3 10BASE5", " IEEE 802.3 10BASE2", " IEEE 802.3 1BASE5", " IEEE 802.3 10BROAD36", " IEEE 802.3 100BASEVG", " IEEE 802.5 Token-Ring", " ANSI X3T9.5 FDDI", " MCA", " ESDI", " IDE", " CMD", " ST506", " DSSI", " QIC2", " Enhanced ATA/IDE", " AGP", " TWIRP (two-way infrared)", " FIR (fast infrared)", " SIR (serial infrared)", " IrBus", " Serial ATA"];
+
+        var HardwareInventory;
+        function HardwareEnumCallback(stack, name, responses, status) {
+            // debug("batchEnumCallback: Status = " + status + ", Name=" + name)
+            if (status == 408) {debug("error status 408"); return;}
+                
+            var i, x = "<table class=log1 cellpadding=0 cellspacing=0 style=width:100%;border-radius:8px>";
+            HardwareInventory = responses;
+
+            var platform=responses['CIM_Chassis'].response;
+            var bb = responses['CIM_Card'].response;
+            var v = responses['CIM_BIOSElement'].response["SoftwareElementID"];
+
+            // console.log(platform)
+            // console.log(responses['CIM_SystemPackaging'])            
+            x += "<h1>CIM_Chassis / CIM_SystemPackaging</h1>"
+            x += "<h2>Platform</h2>";
+            x += FullTable({"Computer model":platform["Model"], "Manufacturer":platform["Manufacturer"], "Version":platform["Version"], "Serial number":platform["SerialNumber"], "System ID":guidToStr(responses['CIM_SystemPackaging'].responses[0]["PlatformGUID"]).toLowerCase(), "Chassis type":ChassisType[platform['ChassisPackageType']], "Package type":ChassisPackType[platform['PackageType']], "Operational status":ChassisOpState[platform['OperationalStatus']]}, ''); 
+            x += "<br>";
+            
+            // console.log(bb)
+            x += "<h1>CIM_Card</h1>"
+            x += "<h2>Baseboard</h2>";
+            x += FullTable({ "Manufacturer":bb["Manufacturer"], "Product name":bb["Model"], "Serial number":bb["SerialNumber"], "Version":bb["Version"], "Asset tag": bb["Tag"], "Package type":CardPackType[bb['PackageType']], "Replaceable?":(bb["CanBeFRUed"]==true)?'Yes':'No' },'');
+            x += "<br>";
+
+            // console.log(responses['CIM_BIOSElement'])
+            // console.log(responses['CIM_BIOSElement'].response['TargetOperatingSystem'])
+            // console.log(typeof(responses['CIM_BIOSElement'].response['TargetOperatingSystem']))
+            // for (i in BIOSTargetOS) { console.log(i+"--"+BIOSTargetOS[i])}
+            x += "<h1>CIM_BIOSElement</h1>"
+            x += "<h2>BIOS</h2>";
+            x += FullTable({"Vendor":responses['CIM_BIOSElement'].response["Manufacturer"], "Version":v, "Release date":new Date(responses['CIM_BIOSElement'].response["ReleaseDate"]['Datetime']).toLocaleDateString('en', {timeZone:'UTC'}), "Software element state":BIOSElState[responses['CIM_BIOSElement'].response["SoftwareElementState"]], "Operating System":BIOSTargetOS[responses['CIM_BIOSElement'].response["TargetOperatingSystem"]]},'');
+            x += "<br>";
+            
+            //console.log(responses['CIM_Processor'])
+            // console.log(responses['CIM_Chip'])
+            // for (i in ProcessorFamily) { console.log(i+"--"+ProcessorFamily[i])}
+            x += "<h1>CIM_Processor / CIM_Chip</h1>";
+            for (i in responses['CIM_Processor'].responses) {
+                var p = responses['CIM_Processor'].responses[i];
+                var q = responses['CIM_Chip'].responses[i]; // This is a shortcut, we assume that the first entries in CIM_Chip are the processors, in the same order.
+                x += "<h2>Processor " + (parseInt(i) + 1) + "</h2>";
+                x += FullTable({"Manufacturer":trademarks(q["Manufacturer"]), "Family":trademarks(ProcessorFamily[p["Family"]]), "Version":trademarks(q["Version"]), "Socket type":ProcessorSock[p['UpgradeMethod']], "Maximum socket speed":p["MaxClockSpeed"] + " MHz", "Status":ProcessorCPUStatus[p["CPUStatus"]], "Replaceable?":(q["CanBeFRUed"]==true)?'Yes':'No' },'');
+            }
+            x += "<br>";
+            
+            // console.log(responses['CIM_PhysicalMemory'])
+            x += "<h1>CIM_PhysicalMemory</h1>"
+            for (i in responses['CIM_PhysicalMemory'].responses) {
+                var m = responses['CIM_PhysicalMemory'].responses[i];
+                x += "<h2>Memory Module " + (+i + 1) + "</h2>";
+                x += FullTable({"Bank Label":m["BankLabel"], "Manufacturer":m["Manufacturer"], "Serial Number":m["SerialNumber"], "Size":parseInt(m["Capacity"] / 0x100000) + " MB", "Form factor":MemFormFactor[m["FormFactor"]], "Type":MemType[m["MemoryType"]], "Asset tag":m["Tag"], "Part number":m["PartNumber"]},'');
+            }
+            x += "<br>";
+
+            // console.log(responses['CIM_MediaAccessDevice'])
+            // console.log(responses['CIM_PhysicalPackage'])
+            x += "<h1>CIM_MediaAccessDevice / CIM_PhysicalPackage</h1>"
+            for (i in responses['CIM_MediaAccessDevice'].responses) {
+                var m = responses['CIM_MediaAccessDevice'].responses[i];
+                var n = responses['CIM_PhysicalPackage'].responses[+i + 1]; // This is a shortcut, we assume CIM_PhysicalPackage is the same as CIM_MediaAccessDevice except for the first entry.
+                x += "<h2>Storage Media " + (parseInt(i) + 1) + "</h2>";
+                x += FullTable({"Model":n['Model'],"Serial number":(n['SerialNumber']==''?'Unknown':n['SerialNumber']), "Size":parseInt(Math.round(m["MaxMediaSize"] * 1000 / 0x100000)) + " MB", "Enabled state":MediaState[m['EnabledState']], "Enabled default state":MediaDefaultState[m['EnabledDefault']], "Requested state":MediaReqState[m['RequestedState']], "Status":PhysState[n['OperationalStatus']], "Package type":PhysPackType[n['PackageType']]},'');
+            }
+            x += "<br>";
+
+            // console.log(responses['AMT_EthernetPortSettings'])
+            // console.log(responses['CIM_EthernetPort'])
+            x += "<h1>AMT_EthernetPortSettings / CIM_EthernetPort</h1>"; 
+            for (i in responses['AMT_EthernetPortSettings'].responses) {
+                var mac = responses['AMT_EthernetPortSettings'].responses[i]['MACAddress'].replace(/-/g, '')
+                var ethernetPortObj, ethernetPortSettingsObj;
+                ethernetPortSettingsObj = responses['AMT_EthernetPortSettings'].responses[i]
+                for (i in responses['CIM_EthernetPort'].responses) {
+                   if (responses['CIM_EthernetPort'].responses[i]['NetworkAddresses'] == mac){
+                    ethernetPortObj = responses['CIM_EthernetPort'].responses[i];
+                   }
+                }
+                // console.log(ethernetPortSettingsObj) 
+                // console.log(ethernetPortObj);
+                x += "<h2>" + ethernetPortObj['DeviceID'] + "</h2>";
+                NetDict = {"Device":ethernetPortObj['Description'],
+                           "MAC address":ethernetPortSettingsObj['MACAddress'],
+                           "Link up":ethernetPortSettingsObj['LinkIsUp'].toString(),
+                           "Port type":EtherPortType[ethernetPortObj['PortType']],
+                           "Link technology":EtherLinkTech[ethernetPortObj['LinkTechnology']],
+                       }                
+                if (ethernetPortSettingsObj['LinkIsUp']){
+                    NetDict["IP address"] = ethernetPortSettingsObj['IPAddress'];
+                    NetDict["Netmask"] = ethernetPortSettingsObj['SubnetMask'];
+                    NetDict["Default gateway"] = ethernetPortSettingsObj['DefaultGateway'];
+                    NetDict["Primary DNS"] = ethernetPortSettingsObj['PrimaryDNS'];
+                }
+                var policy = ''
+                for (i in ethernetPortSettingsObj['LinkPolicy']) {
+                    policy += EtherLinkPolicy[ethernetPortSettingsObj['LinkPolicy'][i]] + ';'
+                }
+                NetDict["Link policy"] = policy
+                x += FullTable(NetDict,'');
+            }
+            x += "<br>";
+
+            // console.log(responses['AMT_PCIDevice'])
+            x += "<h1>AMT_PCIDevice</h1>";
+            for (i in responses['AMT_PCIDevice'].responses) {
+                var r = responses['AMT_PCIDevice'].responses[i]
+                // console.log(responses['AMT_PCIDevice'].responses[i])
+                x += "<h2>PCI device</h2>"
+                x += FullTable({"Element name":r['ElementName'], "System name":r['SystemName'], "Protocol":PCIProt[r['ProtocolSupported']], "Class code":r['ClassCode'], "Device Location":r['DeviceLocation'], "Device ID":r['DeviceID'], "Vendor ID":r['VendorID'], "Subsystem ID":r['SubsystemID'], "SubsystemVendorID":r['SubsystemVendorID']}, '');
+            }
+            x += "<br>";    
+
+            // console.log(responses['CIM_Sensor'])
+            // console.log(responses['AMT_AssetTable'])
+            // console.log(responses['AMT_AssetTableService'])
+            // console.log(responses['CIM_LogicalDevice'])
+            // console.log(responses['CIM_ComputerSystem'])
+            
+            debug(x);               
+            
+            // for (var i in responses){
+            //     console.log(responses[i]);
+            //     var response = responses[i];
+            //     if (response.status == 200) {
+            //         debug("<h2>object " + i + "</h2>");
+            //         debug("<div>" + ObjectToString(response) + "</div>");
+            //     }
+            // }
+        }
+        function Q(x) { return document.getElementById(x); }
+        function TableStart() { return "<table class='log1 us' cellpadding=0 cellspacing=0 style=width:100%;border-radius:8px><tr><td width=200px><p><td>"; }
+        // function TableStart2() { return "<table class='log1 us' cellpadding=0 cellspacing=0 style=width:100%;border-radius:8px><tr><td><p><td>"; }
+        function TableEntry(n, v) { return "<tr><td class=r1><p>" + n + "<td class=r1>" + v; }
+        function TableEnd(n) { return "<tr><td colspan=2><p>" + (n?n:'') + "</table>"; }
+        function guidToStr(g) { return g.substring(6, 8) + g.substring(4, 6) + g.substring(2, 4) + g.substring(0, 2) + "-" + g.substring(10, 12) + g.substring(8, 10) + "-" + g.substring(14, 16) + g.substring(12, 14) + "-" + g.substring(16, 20) + "-" + g.substring(20); }
+        function FullTable(x, e) { var r = TableStart(); for (i in x) { if (i && x[i]) r += TableEntry(i, x[i]); } return r + TableEnd(e); }
+        function SaveHardwareLog() {
+            if (HardwareInventory) SaveJsonFile('IntelAmtHardware', 'hardware', 'Intel AMT Hardware Information', HardwareInventory);
+        }
+        function SaveJsonFile(name, name2, desc, data) {
+            var n = '', r = {}, d = new Date();
+            if (data) {
+                n = "-" + data['AMT_GeneralSettings'].responses[0]['HostName'];
+                r = {'description':desc,'hostname':data['AMT_GeneralSettings'].responses[0]['HostName'],'localtime':Date(),'utctime':new Date().toUTCString(),'isotime':new Date().toISOString()};
+                if (HardwareInventory) r['systemid'] = guidToStr(HardwareInventory['CIM_ComputerSystemPackage'].response["PlatformGUID"].toLowerCase());
+            }
+            n += '-' + d.getFullYear() + "-" + ("0"+(d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2) + "-" + ("0" + d.getHours()).slice(-2) + "-" + ("0" + d.getMinutes()).slice(-2);;
+            r[name2] = data;
+                        
+            var chooser = Q('fileSaveDialog');
+            chooser.setAttribute("nwsaveas", name + n + '.json');
+            chooser.addEventListener("change", function() { require('fs').writeFile(this.value, JSON.stringify(r, null, '  ').replace(/\n/g, '\r\n')); }, false);
+            chooser.click();
+            
+        }
+
+    </script>
+</body>
+</html>

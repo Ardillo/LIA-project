@@ -1,0 +1,90 @@
+body {
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif; 
+}
+
+.title {
+    font-size:18px;
+    font-weight: bold;
+    margin-bottom:5px;
+}
+
+.top {
+    background-color:lightgray;
+    width:auto;
+    padding:5px;
+    border-bottom:2px solid orange;
+}
+
+.buttons {
+    background-color:gray;
+    width:auto;
+    padding:5px;
+    border-bottom:2px solid orange;
+}
+
+.textlabel {
+    width:150px;
+    float:left;
+}
+
+.results {
+    padding:5px;
+}
+
+.wsman {
+    font-size:12px;
+    font-family:'Courier New';
+}
+
+h1 {
+    font-size: 14pt;
+    font-weight: bold;
+    color: black;
+    margin-left: 5px;
+    margin-top: 10px;
+    margin-bottom: 6px;
+}
+
+
+h2 {
+    font-size: 12pt;
+    font-weight: bold;
+    color: black;
+    margin-left: 6px;
+    margin-top: 6px;
+    margin-bottom: 0;
+}
+
+p {
+    margin-left: 6px;
+    margin-top: 4px;
+    margin-bottom: 0;
+    margin-right: 2px;
+}
+
+td {
+    font-size: 12pt;
+}
+
+th {
+    font-size: 9pt;
+}
+
+.r1 {
+    border-bottom: 1px solid gray;
+    text-align: left;
+}
+
+.us {
+    -webkit-touch-callout: initial;
+    -webkit-user-select: auto;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+.log1 {
+    background: #bbbab5;
+}
